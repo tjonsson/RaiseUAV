@@ -6,6 +6,7 @@ Build/*
 DerivedDataCache/*
 Intermediate/*
 Plugins/*/Intermediate/*
+Plugins/*/Binaries/*
 Saved/*
 *.pdb
 cesium-request-cache.sqlite*
