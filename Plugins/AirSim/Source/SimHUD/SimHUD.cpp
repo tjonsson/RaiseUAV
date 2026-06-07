@@ -270,7 +270,7 @@ void ASimHUD::setupInputBindings()
     UAirBlueprintLib::EnableInput(this);
 
     UAirBlueprintLib::BindActionToKey("inputEventToggleRecording", EKeys::R, this, &ASimHUD::inputEventToggleRecording);
-    UAirBlueprintLib::BindActionToKey("InputEventToggleReport", EKeys::Semicolon, this, &ASimHUD::inputEventToggleReport);
+    UAirBlueprintLib::BindActionToKey("InputEventToggleReport", EKeys::Tab, this, &ASimHUD::inputEventToggleReport);
     UAirBlueprintLib::BindActionToKey("InputEventToggleHelp", EKeys::F1, this, &ASimHUD::inputEventToggleHelp);
     UAirBlueprintLib::BindActionToKey("InputEventToggleTrace", EKeys::T, this, &ASimHUD::inputEventToggleTrace);
 

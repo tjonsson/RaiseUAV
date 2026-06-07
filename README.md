@@ -38,6 +38,30 @@ The Level Blueprint orchestrates runtime logic:
   * Drone follow camera (`Enter` key — cycles between drones)
   * Free Spectator Camera (`P`)
 * Toggles visibility of telemetry UI depending on which drone is currently selected.
+
+### Runtime Hotkeys
+
+| Key | Action |
+|-----|--------|
+| `F1` | Toggle help |
+| `Enter` | Switch drone |
+| `P` | Spectator camera |
+| `O` | Original chase view |
+| `C` | Cycle vehicle cameras |
+| `F` | FPV view |
+| `B` | Fly-with-me view |
+| `G` | Ground observer view |
+| `M` | Manual camera view |
+| `I` | Front camera view |
+| `K` | Backup camera view |
+| `-` | No display view |
+| `Tab` | Toggle report |
+| `R` | Toggle recording |
+| `T` | Toggle trace |
+| `1`/`2`/`3` | Toggle subwindows |
+| `0` | Toggle all subwindows |
+| `Backspace` | Reset |
+
 ---
 
 ## C++ Network Layer (WebSocket Receivers)

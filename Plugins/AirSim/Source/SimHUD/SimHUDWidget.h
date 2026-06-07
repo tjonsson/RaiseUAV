@@ -12,6 +12,8 @@ class AIRSIM_API USimHUDWidget : public UUserWidget
     GENERATED_BODY()
 
 public:
+    virtual void NativeConstruct() override;
+
     UFUNCTION(BlueprintCallable, Category = "Event handler")
     void onToggleRecordingButtonClick();
 
@@ -59,5 +61,8 @@ protected:
     bool setReportText(const FString& text);
 
 private:
+    void updateHelpText();
+    void hideCenterMessage();
+
     OnToggleRecording on_toggle_recording_;
 };

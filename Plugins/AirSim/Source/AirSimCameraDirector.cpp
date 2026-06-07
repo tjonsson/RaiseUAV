@@ -194,9 +194,9 @@ void AAirSimCameraDirector::setupInputBindings()
 
     UAirBlueprintLib::BindActionToKey("inputEventFpvView", EKeys::F, this, &AAirSimCameraDirector::inputEventFpvView);
     UAirBlueprintLib::BindActionToKey("inputEventFlyWithView", EKeys::B, this, &AAirSimCameraDirector::inputEventFlyWithView);
-    UAirBlueprintLib::BindActionToKey("inputEventGroundView", EKeys::Backslash, this, &AAirSimCameraDirector::inputEventGroundView);
+    UAirBlueprintLib::BindActionToKey("inputEventGroundView", EKeys::G, this, &AAirSimCameraDirector::inputEventGroundView);
     UAirBlueprintLib::BindActionToKey("inputEventManualView", EKeys::M, this, &AAirSimCameraDirector::inputEventManualView);
-    UAirBlueprintLib::BindActionToKey("inputEventSpringArmChaseView", EKeys::Slash, this, &AAirSimCameraDirector::inputEventSpringArmChaseView);
+    UAirBlueprintLib::BindActionToKey("inputEventSpringArmChaseView", EKeys::O, this, &AAirSimCameraDirector::inputEventSpringArmChaseView);
     UAirBlueprintLib::BindActionToKey("inputEventBackupView", EKeys::K, this, &AAirSimCameraDirector::inputEventBackupView);
     UAirBlueprintLib::BindActionToKey("inputEventNoDisplayView", EKeys::Hyphen, this, &AAirSimCameraDirector::inputEventNoDisplayView);
     UAirBlueprintLib::BindActionToKey("inputEventFrontView", EKeys::I, this, &AAirSimCameraDirector::inputEventFrontView);
