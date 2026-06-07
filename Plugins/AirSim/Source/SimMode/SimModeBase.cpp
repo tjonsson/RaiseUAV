@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Misc/FileHelper.h"
+#include "TimerManager.h"
 #include <memory>
 #include "AirBlueprintLib.h"
 #include "Annotation/ObjectAnnotator.h"
@@ -102,6 +103,8 @@ void ASimModeBase::BeginPlay()
 {
     Super::BeginPlay();
 
+    vehicle_setup_complete_ = false;
+
     debug_reporter_.initialize(false);
     debug_reporter_.reset();
 
@@ -156,6 +159,21 @@ void ASimModeBase::BeginPlay()
 
     UAirBlueprintLib::LogMessage(TEXT("Press F1 to see help"), TEXT(""), LogDebugLevel::Informational);
 
+    const float vehicle_spawn_delay = getStartupVehicleSpawnDelaySeconds();
+    if (vehicle_spawn_delay > 0.0f) {
+        UAirBlueprintLib::LogMessageString("Delaying vehicle spawn by seconds: ", std::to_string(vehicle_spawn_delay), LogDebugLevel::Informational);
+        GetWorldTimerManager().SetTimer(vehicle_spawn_delay_timer_, this, &ASimModeBase::completeVehicleSetup, vehicle_spawn_delay, false);
+    }
+    else {
+        completeVehicleSetup();
+    }
+}
+
+void ASimModeBase::completeVehicleSetup()
+{
+    if (vehicle_setup_complete_)
+        return;
+
     setupVehiclesAndCamera();
     FRecordingThread::init();
 
@@ -169,12 +187,26 @@ void ASimModeBase::BeginPlay()
     }
     UAirBlueprintLib::GenerateActorMap(this, scene_object_map);
 
-    loading_screen_widget_->AddToViewport();
-    loading_screen_widget_->SetVisibility(ESlateVisibility::Hidden);
+    if (loading_screen_widget_) {
+        loading_screen_widget_->AddToViewport();
+        loading_screen_widget_->SetVisibility(ESlateVisibility::Hidden);
+    }
 
     InitializeInstanceSegmentation();
 
     InitializeAnnotation();
+
+    onVehicleSetupComplete();
+    vehicle_setup_complete_ = true;
+}
+
+float ASimModeBase::getStartupVehicleSpawnDelaySeconds() const
+{
+    return 0.0f;
+}
+
+void ASimModeBase::onVehicleSetupComplete()
+{
 }
 
 const NedTransform& ASimModeBase::getGlobalNedTransform()
@@ -1338,6 +1370,10 @@ void ASimModeBase::AddAnnotatorCamera(FString name, FObjectAnnotator::AnnotatorT
 
 void ASimModeBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    if (UWorld* World = GetWorld()) {
+        World->GetTimerManager().ClearTimer(vehicle_spawn_delay_timer_);
+    }
+
     FRecordingThread::stopRecording();
     FRecordingThread::killRecording();
     world_sim_api_.reset();
@@ -1656,12 +1692,14 @@ void ASimModeBase::toggleTraceAll()
 
 const APIPCamera* ASimModeBase::getCamera(const msr::airlib::CameraDetails& camera_details) const
 {
-    return getVehicleSimApi(camera_details.vehicle_name)->getCamera(camera_details.camera_name);
+    const PawnSimApi* vehicle_sim_api = getVehicleSimApi(camera_details.vehicle_name);
+    return vehicle_sim_api ? vehicle_sim_api->getCamera(camera_details.camera_name) : nullptr;
 }
 
 const UnrealImageCapture* ASimModeBase::getImageCapture(const std::string& vehicle_name) const
 {
-    return getVehicleSimApi(vehicle_name)->getImageCapture();
+    const PawnSimApi* vehicle_sim_api = getVehicleSimApi(vehicle_name);
+    return vehicle_sim_api ? vehicle_sim_api->getImageCapture() : nullptr;
 }
 
 //API server start/stop
@@ -1974,10 +2012,19 @@ void ASimModeBase::setupVehiclesAndCamera()
     if (getApiProvider()->hasDefaultVehicle()) {
         //TODO: better handle no FPV vehicles scenario
         getVehicleSimApi()->possess();
-        CameraDirector->initializeForBeginPlay(getInitialViewMode(), getVehicleSimApi()->getPawn(), getVehicleSimApi()->getCamera("fpv"), getVehicleSimApi()->getCamera("back_center"), nullptr);
+        TArray<APIPCamera*> cycle_cameras;
+        if (const auto* vehicle_setting = getVehicleSimApi()->getVehicleSetting()) {
+            for (const auto& pair : vehicle_setting->cameras) {
+                APIPCamera* camera = getVehicleSimApi()->getCamera(pair.first);
+                if (camera)
+                    cycle_cameras.Add(camera);
+            }
+        }
+
+        CameraDirector->initializeForBeginPlay(getInitialViewMode(), getVehicleSimApi()->getPawn(), getVehicleSimApi()->getCamera("fpv"), getVehicleSimApi()->getCamera("back_center"), nullptr, cycle_cameras);
     }
     else
-        CameraDirector->initializeForBeginPlay(getInitialViewMode(), nullptr, nullptr, nullptr, nullptr);
+        CameraDirector->initializeForBeginPlay(getInitialViewMode(), nullptr, nullptr, nullptr, nullptr, TArray<APIPCamera*>());
 
     checkVehicleReady();
 }

@@ -5,6 +5,7 @@
 #include "Engine/DirectionalLight.h"
 #include "GameFramework/Actor.h"
 #include "Components/MeshComponent.h"
+#include "TimerManager.h"
 #include "ParticleDefinitions.h"
 #include "Annotation/ObjectAnnotator.h"
 #include <string>
@@ -184,11 +185,15 @@ public:
     }
     const PawnSimApi* getVehicleSimApi(const std::string& vehicle_name = "") const
     {
-        return static_cast<PawnSimApi*>(api_provider_->getVehicleSimApi(vehicle_name));
+        return api_provider_ ? static_cast<PawnSimApi*>(api_provider_->getVehicleSimApi(vehicle_name)) : nullptr;
     }
     PawnSimApi* getVehicleSimApi(const std::string& vehicle_name = "")
     {
-        return static_cast<PawnSimApi*>(api_provider_->getVehicleSimApi(vehicle_name));
+        return api_provider_ ? static_cast<PawnSimApi*>(api_provider_->getVehicleSimApi(vehicle_name)) : nullptr;
+    }
+    bool isVehicleSetupComplete() const
+    {
+        return vehicle_setup_complete_;
     }
 	std::vector<std::string> GetAllInstanceSegmentationMeshIDs();
     std::vector<msr::airlib::Pose> GetAllInstanceSegmentationMeshPoses(bool ned = true, bool only_visible = false);
@@ -249,6 +254,8 @@ protected: //optional overrides
     virtual APawn* createVehiclePawn(const AirSimSettings::VehicleSetting& vehicle_setting);
     virtual std::unique_ptr<PawnSimApi> createVehicleApi(APawn* vehicle_pawn);
     virtual void setupVehiclesAndCamera();
+    virtual float getStartupVehicleSpawnDelaySeconds() const;
+    virtual void onVehicleSetupComplete();
     virtual void setupInputBindings();
     //called when SimMode should handle clock speed setting
     virtual void setupClockSpeed();
@@ -262,6 +269,7 @@ protected: //optional overrides
 protected: //Utility methods for derived classes
     virtual const AirSimSettings& getSettings() const;
     FRotator toFRotator(const AirSimSettings::Rotation& rotation, const FRotator& default_val);
+    void completeVehicleSetup();
 
 protected:
     int record_tick_count;
@@ -319,6 +327,8 @@ private:
 
     FObjectAnnotator instance_segmentation_annotator_;
     TMap<FString, FObjectAnnotator> annotators_;
+    FTimerHandle vehicle_spawn_delay_timer_;
+    bool vehicle_setup_complete_ = false;
 
 private:
     void InitializeInstanceSegmentation();

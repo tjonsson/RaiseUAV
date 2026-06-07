@@ -9,3 +9,4 @@ Plugins/*/Intermediate/*
 Saved/*
 *.pdb
 cesium-request-cache.sqlite*
+/Binaries

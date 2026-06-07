@@ -12,7 +12,15 @@
 #include <stdexcept>
 
 ASimHUD::ASimHUD()
+    : widget_class_(nullptr)
+    , widget_(nullptr)
+    , simmode_(nullptr)
+    , map_changed_(false)
+    , startup_after_vehicle_setup_complete_(false)
 {
+    for (APIPCamera*& camera : subwindow_cameras_)
+        camera = nullptr;
+
     static ConstructorHelpers::FClassFinder<UUserWidget> hud_widget_class(TEXT("WidgetBlueprint'/AirSim/Blueprints/BP_SimHUDWidget'"));
     widget_class_ = hud_widget_class.Succeeded() ? hud_widget_class.Class : nullptr;
 }
@@ -31,10 +39,7 @@ void ASimHUD::BeginPlay()
 
         setUnrealEngineSettings();
         createSimMode();
-        createMainWidget();
-        setupInputBindings();
-        if (simmode_)
-            simmode_->startApiServer();
+        completeStartupAfterVehicleSetup();
     }
     catch (std::exception& ex) {
         UAirBlueprintLib::LogMessageString("Error at startup: ", ex.what(), LogDebugLevel::Failure);
@@ -46,12 +51,16 @@ void ASimHUD::BeginPlay()
 
 void ASimHUD::Tick(float DeltaSeconds)
 {
-    if (simmode_ && simmode_->EnableReport)
+    if (simmode_ && widget_ && simmode_->EnableReport)
         widget_->updateDebugReport(simmode_->getDebugReport());
 }
 
 void ASimHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    if (UWorld* World = GetWorld()) {
+        World->GetTimerManager().ClearTimer(startup_after_vehicle_setup_timer_);
+    }
+
     if (simmode_)
         simmode_->stopApiServer();
 
@@ -168,9 +177,17 @@ void ASimHUD::inputEventToggleAll()
 
 void ASimHUD::createMainWidget()
 {
+    if (widget_)
+        return;
+
     //create main widget
     if (widget_class_ != nullptr) {
         APlayerController* player_controller = this->GetWorld()->GetFirstPlayerController();
+        if (!player_controller) {
+            UAirBlueprintLib::LogMessage(TEXT("Cannot instantiate BP_SimHUDWidget because there is no player controller."), TEXT(""), LogDebugLevel::Failure);
+            return;
+        }
+
         auto* pawn = player_controller->GetPawn();
         if (pawn) {
             std::string pawn_name = std::string(TCHAR_TO_ANSI(*pawn->GetName()));
@@ -182,10 +199,15 @@ void ASimHUD::createMainWidget()
         }
 
         widget_ = CreateWidget<USimHUDWidget>(player_controller, widget_class_);
+        if (!widget_) {
+            UAirBlueprintLib::LogMessage(TEXT("Cannot instantiate BP_SimHUDWidget blueprint!"), TEXT(""), LogDebugLevel::Failure);
+            return;
+        }
     }
     else {
         widget_ = nullptr;
         UAirBlueprintLib::LogMessage(TEXT("Cannot instantiate BP_SimHUDWidget blueprint!"), TEXT(""), LogDebugLevel::Failure);
+        return;
     }
 
     initializeSubWindows();
@@ -199,6 +221,29 @@ void ASimHUD::createMainWidget()
     widget_->setOnToggleRecordingHandler(std::bind(&ASimHUD::toggleRecordHandler, this));
     widget_->setRecordButtonVisibility(AirSimSettings::singleton().is_record_ui_visible);
     updateWidgetSubwindowVisibility();
+}
+
+void ASimHUD::completeStartupAfterVehicleSetup()
+{
+    if (startup_after_vehicle_setup_complete_)
+        return;
+
+    if (!simmode_)
+        return;
+
+    if (!simmode_->isVehicleSetupComplete()) {
+        if (UWorld* World = GetWorld()) {
+            World->GetTimerManager().SetTimer(startup_after_vehicle_setup_timer_, this, &ASimHUD::completeStartupAfterVehicleSetup, 0.1f, false);
+        }
+        return;
+    }
+
+    createMainWidget();
+    if (widget_)
+        setupInputBindings();
+    if (!simmode_->isApiServerStarted())
+        simmode_->startApiServer();
+    startup_after_vehicle_setup_complete_ = true;
 }
 
 void ASimHUD::setUnrealEngineSettings()

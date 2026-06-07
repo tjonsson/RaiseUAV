@@ -19,10 +19,12 @@ UnrealImageCapture::~UnrealImageCapture()
 void UnrealImageCapture::getImages(const std::vector<msr::airlib::ImageCaptureBase::ImageRequest>& requests,
                                    std::vector<msr::airlib::ImageCaptureBase::ImageResponse>& responses) const
 {
+    responses.reserve(responses.size() + requests.size());
+
     if (cameras_->valsSize() == 0) {
         for (unsigned int i = 0; i < requests.size(); ++i) {
-            responses.push_back(ImageResponse());
-            responses[responses.size() - 1].message = "camera is not set";
+            responses.emplace_back();
+            responses.back().message = "camera is not set";
         }
     }
     else
@@ -66,7 +68,7 @@ void UnrealImageCapture::getSceneCaptureImage(const std::vector<msr::airlib::Ima
             gameViewport = camera->GetWorld()->GetGameViewport();
         }
 
-        responses.push_back(ImageResponse());
+        responses.emplace_back();
         ImageResponse& response = responses.at(i);          
         UTextureRenderTarget2D* textureTarget = nullptr;
         USceneCaptureComponent2D* capture = nullptr;

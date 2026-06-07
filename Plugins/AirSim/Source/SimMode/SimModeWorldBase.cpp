@@ -41,12 +41,14 @@ void ASimModeWorldBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ASimModeWorldBase::startAsyncUpdator()
 {
-    physics_world_->startAsyncUpdator();
+    if (physics_world_)
+        physics_world_->startAsyncUpdator();
 }
 
 void ASimModeWorldBase::stopAsyncUpdator()
 {
-    physics_world_->stopAsyncUpdator();
+    if (physics_world_)
+        physics_world_->stopAsyncUpdator();
 }
 
 long long ASimModeWorldBase::getPhysicsLoopPeriod() const //nanoseconds
@@ -150,21 +152,23 @@ void ASimModeWorldBase::updateDebugReport(msr::airlib::StateReporterWrapper& deb
 
 void ASimModeWorldBase::Tick(float DeltaSeconds)
 {
-    { //keep this lock as short as possible
-        physics_world_->lock();
+    if (physics_world_) {
+        { //keep this lock as short as possible
+            physics_world_->lock();
 
-        physics_world_->enableStateReport(EnableReport);
-        physics_world_->updateStateReport();
+            physics_world_->enableStateReport(EnableReport);
+            physics_world_->updateStateReport();
 
+            for (auto& api : getApiProvider()->getVehicleSimApis())
+                api->updateRenderedState(DeltaSeconds);
+
+            physics_world_->unlock();
+        }
+
+        //perform any expensive rendering update outside of lock region
         for (auto& api : getApiProvider()->getVehicleSimApis())
-            api->updateRenderedState(DeltaSeconds);
-
-        physics_world_->unlock();
+            api->updateRendering(DeltaSeconds);
     }
-
-    //perform any expensive rendering update outside of lock region
-    for (auto& api : getApiProvider()->getVehicleSimApis())
-        api->updateRendering(DeltaSeconds);
 
     Super::Tick(DeltaSeconds);
 }

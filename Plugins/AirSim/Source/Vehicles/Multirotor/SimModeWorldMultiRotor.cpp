@@ -19,8 +19,16 @@
 void ASimModeWorldMultiRotor::BeginPlay()
 {
     Super::BeginPlay();
+}
 
-    //let base class setup physics world
+float ASimModeWorldMultiRotor::getStartupVehicleSpawnDelaySeconds() const
+{
+    return 5.0f;
+}
+
+void ASimModeWorldMultiRotor::onVehicleSetupComplete()
+{
+    // Let the base class set up the physics world after delayed vehicle spawn.
     initializeForPlay();
 }
 

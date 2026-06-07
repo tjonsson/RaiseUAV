@@ -5,6 +5,7 @@
 #include "SimHUDWidget.h"
 #include "SimMode/SimModeBase.h"
 #include "PIPCamera.h"
+#include "TimerManager.h"
 #include "api/ApiServerBase.hpp"
 #include <memory>
 #include "SimHUD.generated.h"
@@ -53,6 +54,7 @@ private:
     void setUnrealEngineSettings();
     void loadLevel();
     void createMainWidget();
+    void completeStartupAfterVehicleSetup();
     const std::vector<AirSimSettings::SubwindowSetting>& getSubWindowSettings() const;
     std::vector<AirSimSettings::SubwindowSetting>& getSubWindowSettings();
 
@@ -74,4 +76,6 @@ private:
 
     APIPCamera* subwindow_cameras_[AirSimSettings::kSubwindowCount];
     bool map_changed_;
+    bool startup_after_vehicle_setup_complete_;
+    FTimerHandle startup_after_vehicle_setup_timer_;
 };

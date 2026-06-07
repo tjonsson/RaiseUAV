@@ -49,7 +49,7 @@ ECameraDirectorMode AAirSimCameraDirector::getMode()
 }
 
 void AAirSimCameraDirector::initializeForBeginPlay(ECameraDirectorMode view_mode,
-                                             AActor* follow_actor, APIPCamera* fpv_camera, APIPCamera* front_camera, APIPCamera* back_camera)
+                                             AActor* follow_actor, APIPCamera* fpv_camera, APIPCamera* front_camera, APIPCamera* back_camera, const TArray<APIPCamera*>& cycle_cameras)
 {
     manual_pose_controller_ = NewObject<UManualPoseController>(this, "CameraDirector_ManualPoseController");
     manual_pose_controller_->initializeForPlay();
@@ -62,6 +62,7 @@ void AAirSimCameraDirector::initializeForBeginPlay(ECameraDirectorMode view_mode
     fpv_camera_ = fpv_camera;
     front_camera_ = front_camera;
     backup_camera_ = back_camera;
+    setCycleCameras(cycle_cameras);
     camera_start_location_ = ExternalCamera->GetActorLocation();
     camera_start_rotation_ = ExternalCamera->GetActorRotation();
     initial_ground_obs_offset_ = camera_start_location_ -
@@ -92,6 +93,9 @@ void AAirSimCameraDirector::initializeForBeginPlay(ECameraDirectorMode view_mode
         break;
     case ECameraDirectorMode::CAMERA_DIRECTOR_MODE_FRONT:
         inputEventFrontView();
+        break;
+    case ECameraDirectorMode::CAMERA_DIRECTOR_MODE_DOWN:
+        inputEventCycleView();
         break;
     default:
         throw std::out_of_range("Unsupported view mode specified in CameraDirector::initializeForBeginPlay");
@@ -196,6 +200,7 @@ void AAirSimCameraDirector::setupInputBindings()
     UAirBlueprintLib::BindActionToKey("inputEventBackupView", EKeys::K, this, &AAirSimCameraDirector::inputEventBackupView);
     UAirBlueprintLib::BindActionToKey("inputEventNoDisplayView", EKeys::Hyphen, this, &AAirSimCameraDirector::inputEventNoDisplayView);
     UAirBlueprintLib::BindActionToKey("inputEventFrontView", EKeys::I, this, &AAirSimCameraDirector::inputEventFrontView);
+    UAirBlueprintLib::BindActionToKey("inputEventCycleView", EKeys::C, this, &AAirSimCameraDirector::inputEventCycleView);
 }
 
 void AAirSimCameraDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -207,6 +212,8 @@ void AAirSimCameraDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
     backup_camera_ = nullptr;
     front_camera_ = nullptr;
     follow_actor_ = nullptr;
+    cycle_cameras_.Empty();
+    cycle_camera_index_ = -1;
 }
 
 APIPCamera* AAirSimCameraDirector::getFpvCamera() const
@@ -234,7 +241,7 @@ void AAirSimCameraDirector::inputEventSpringArmChaseView()
     if (ExternalCamera) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_SPRINGARM_CHASE);
         ExternalCamera->showToScreen();
-        disableCameras(true, true, true);
+        disableAllManagedCameras(ExternalCamera);
     }
     else
         UAirBlueprintLib::LogMessageString("Camera is not available: ", "ExternalCamera", LogDebugLevel::Failure);
@@ -247,7 +254,7 @@ void AAirSimCameraDirector::inputEventGroundView()
     if (ExternalCamera) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_GROUND_OBSERVER);
         ExternalCamera->showToScreen();
-        disableCameras(true, true, true);
+        disableAllManagedCameras(ExternalCamera);
         ext_obs_fixed_z_ = true;
     }
     else
@@ -261,7 +268,7 @@ void AAirSimCameraDirector::inputEventManualView()
     if (ExternalCamera) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_MANUAL);
         ExternalCamera->showToScreen();
-        disableCameras(true, true, true);
+        disableAllManagedCameras(ExternalCamera);
     }
     else
         UAirBlueprintLib::LogMessageString("Camera is not available: ", "ExternalCamera", LogDebugLevel::Failure);
@@ -273,7 +280,7 @@ void AAirSimCameraDirector::inputEventNoDisplayView()
 {
     if (ExternalCamera) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_NODISPLAY);
-        disableCameras(true, true, true);
+        disableAllManagedCameras(nullptr);
     }
     else
         UAirBlueprintLib::LogMessageString("Camera is not available: ", "ExternalCamera", LogDebugLevel::Failure);
@@ -286,7 +293,7 @@ void AAirSimCameraDirector::inputEventBackupView()
     if (backup_camera_) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_BACKUP);
         backup_camera_->showToScreen();
-        disableCameras(true, false, true);
+        disableAllManagedCameras(backup_camera_);
     }
     else
         UAirBlueprintLib::LogMessageString("Camera is not available: ", "backup_camera", LogDebugLevel::Failure);
@@ -299,7 +306,7 @@ void AAirSimCameraDirector::inputEventFrontView()
     if (front_camera_) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_FRONT);
         front_camera_->showToScreen();
-        disableCameras(true, true, false);
+        disableAllManagedCameras(front_camera_);
     }
     else
         UAirBlueprintLib::LogMessageString("Camera is not available: ", "backup_camera", LogDebugLevel::Failure);
@@ -316,7 +323,7 @@ void AAirSimCameraDirector::inputEventFlyWithView()
         if (follow_actor_)
             ExternalCamera->SetActorLocationAndRotation(
                 follow_actor_->GetActorLocation() + initial_ground_obs_offset_, camera_start_rotation_);
-        disableCameras(true, true, true);
+        disableAllManagedCameras(ExternalCamera);
         ext_obs_fixed_z_ = false;
     }
     else
@@ -330,7 +337,7 @@ void AAirSimCameraDirector::inputEventFpvView()
     if (fpv_camera_) {
         setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_FPV);
         fpv_camera_->showToScreen();
-        disableCameras(false, true, true);
+        disableAllManagedCameras(fpv_camera_);
     }
     else
         UAirBlueprintLib::LogMessageString("Camera is not available: ", "fpv_camera", LogDebugLevel::Failure);
@@ -338,14 +345,66 @@ void AAirSimCameraDirector::inputEventFpvView()
     notifyViewModeChanged();
 }
 
-void AAirSimCameraDirector::disableCameras(bool fpv, bool backup, bool front)
+void AAirSimCameraDirector::inputEventCycleView()
 {
-    if (fpv && fpv_camera_)
-        fpv_camera_->disableMain();
-    if (backup && backup_camera_)
-        backup_camera_->disableMain();
-    if (front && front_camera_)
-        front_camera_->disableMain();
+    if (cycle_cameras_.Num() > 0) {
+        int start_index = cycle_camera_index_;
+        APIPCamera* selected_camera = nullptr;
+        for (int offset = 1; offset <= cycle_cameras_.Num(); ++offset) {
+            int idx = (start_index + offset) % cycle_cameras_.Num();
+            if (cycle_cameras_[idx]) {
+                cycle_camera_index_ = idx;
+                selected_camera = cycle_cameras_[idx];
+                break;
+            }
+        }
+
+        if (selected_camera) {
+            setMode(ECameraDirectorMode::CAMERA_DIRECTOR_MODE_DOWN);
+            selected_camera->showToScreen();
+            disableAllManagedCameras(selected_camera);
+        }
+        else {
+            UAirBlueprintLib::LogMessageString("Camera is not available: ", "cycle_camera", LogDebugLevel::Failure);
+        }
+    }
+    else
+        UAirBlueprintLib::LogMessageString("Camera list is empty: ", "cycle_camera", LogDebugLevel::Failure);
+
+    notifyViewModeChanged();
+}
+
+void AAirSimCameraDirector::disableAllManagedCameras(APIPCamera* keep)
+{
+    TSet<APIPCamera*> cameras;
+    if (fpv_camera_)
+        cameras.Add(fpv_camera_);
+    if (backup_camera_)
+        cameras.Add(backup_camera_);
+    if (front_camera_)
+        cameras.Add(front_camera_);
+    for (APIPCamera* camera : cycle_cameras_) {
+        if (camera)
+            cameras.Add(camera);
+    }
+
+    for (APIPCamera* camera : cameras) {
+        if (camera && camera != keep)
+            camera->disableMain();
+    }
+}
+
+void AAirSimCameraDirector::setCycleCameras(const TArray<APIPCamera*>& cameras)
+{
+    cycle_cameras_.Reset();
+    TSet<APIPCamera*> unique_cameras;
+    for (APIPCamera* camera : cameras) {
+        if (camera && !unique_cameras.Contains(camera)) {
+            unique_cameras.Add(camera);
+            cycle_cameras_.Add(camera);
+        }
+    }
+    cycle_camera_index_ = -1;
 }
 
 void AAirSimCameraDirector::notifyViewModeChanged()

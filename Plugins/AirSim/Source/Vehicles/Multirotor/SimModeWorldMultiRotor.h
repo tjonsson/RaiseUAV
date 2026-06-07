@@ -30,6 +30,8 @@ protected: //overrides
         const PawnSimApi::Params& pawn_sim_api_params) const override;
     virtual msr::airlib::VehicleApiBase* getVehicleApi(const PawnSimApi::Params& pawn_sim_api_params,
                                                        const PawnSimApi* sim_api) const override;
+    virtual float getStartupVehicleSpawnDelaySeconds() const override;
+    virtual void onVehicleSetupComplete() override;
 
 private:
     typedef AFlyingPawn TVehiclePawn;

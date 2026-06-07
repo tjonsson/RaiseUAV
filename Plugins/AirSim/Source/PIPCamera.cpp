@@ -10,11 +10,14 @@
 #include <string>
 #include <exception>
 #include "AirBlueprintLib.h"
+#include "CesiumCamera.h"
+#include "CesiumCameraManager.h"
 
 //CinemAirSim
 APIPCamera::APIPCamera(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer
-                .SetDefaultSubobjectClass<UCineCameraComponent>(TEXT("CameraComponent")))
+                .SetDefaultSubobjectClass<UCineCameraComponent>(TEXT("CameraComponent"))),
+      cesium_camera_id_(INDEX_NONE)
 {
     static ConstructorHelpers::FObjectFinder<UMaterial> mat_finder(TEXT("Material'/AirSim/HUDAssets/CameraSensorNoise.CameraSensorNoise'"));
     if (mat_finder.Succeeded()) {
@@ -265,10 +268,13 @@ void APIPCamera::Tick(float DeltaTime)
         UAirBlueprintLib::DrawPoint(this->GetWorld(), this->GetActorTransform().GetLocation(), 5, FColor::Black, false, 0.3);
         UAirBlueprintLib::DrawCoordinateSystem(this->GetWorld(), this->GetActorLocation(), this->GetActorRotation(), 25, false, 0.3, 10);
     }
+    updateCesiumCameraManager();
 }
 
 void APIPCamera::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    removeCesiumCameraManagerCamera();
+
     int image_count_to_delete = static_cast<int>(Utils::toNumeric(ImageType::Count));
     if (noise_materials_.Num()) {
         for (int image_type = 0; image_type < image_count_to_delete - 3; ++image_type) {
@@ -358,7 +364,7 @@ bool APIPCamera::getCameraTypeEnabled(ImageType type, std::string annotation_nam
     }
     else {
         return camera_type_enabled_[Utils::toNumeric(type)];
-    }    
+    }
 }
 
 bool APIPCamera::GetAnnotationNameExist(std::string annotation_name)
@@ -415,6 +421,7 @@ void APIPCamera::setCameraPose(const msr::airlib::Pose& relative_pose)
     else {
         this->SetActorRelativeRotation(rotator);
     }
+    updateCesiumCameraManager();
 }
 
 void APIPCamera::setCameraFoV(float fov_degrees)
@@ -423,6 +430,7 @@ void APIPCamera::setCameraFoV(float fov_degrees)
         captures_[image_type]->FOVAngle = fov_degrees;
     }
     camera_->SetFieldOfView(fov_degrees);
+    updateCesiumCameraManager();
 }
 
 msr::airlib::CameraInfo APIPCamera::getCameraInfo() const
@@ -623,6 +631,7 @@ void APIPCamera::setupCameraFromSettings(const APIPCamera::CameraSetting& camera
             setDistortionMaterial(image_type, captures_[image_type], captures_[image_type]->PostProcessSettings);
             setNoiseMaterial(image_type, captures_[image_type], captures_[image_type]->PostProcessSettings, noise_setting);
             copyCameraSettingsToSceneCapture(camera_, captures_[image_type]); //CinemAirSim
+            updateCameraPostProcessingSetting(captures_[image_type]->PostProcessSettings, capture_setting);
             if(image_type == Utils::toNumeric(ImageType::Scene)) {
                 if (capture_setting.lumen_gi_enabled) {
                     captures_[image_type]->PostProcessSettings.bOverride_DynamicGlobalIlluminationMethod = 1;
@@ -653,6 +662,10 @@ void APIPCamera::setupCameraFromSettings(const APIPCamera::CameraSetting& camera
             setNoiseMaterial(image_type, camera_, camera_->PostProcessSettings, noise_setting);
             copyCameraSettingsToAllSceneCapture(camera_); //CinemAirSim
         }
+    }
+
+    if (updateCesiumCameraManager()) {
+        this->SetActorTickEnabled(true);
     }
 }
 
@@ -974,6 +987,7 @@ void APIPCamera::setPresetLensSettings(std::string preset_string)
     const FString preset(preset_string.c_str());
     camera_->SetLensPresetByName(preset);
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 }
 
 std::vector<std::string> APIPCamera::getPresetFilmbackSettings() const
@@ -996,6 +1010,7 @@ void APIPCamera::setPresetFilmbackSettings(std::string preset_string)
     const FString preset(preset_string.c_str());
     camera_->SetFilmbackPresetByName(preset);
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 }
 
 std::string APIPCamera::getFilmbackSettings() const
@@ -1017,6 +1032,7 @@ float APIPCamera::setFilmbackSettings(float sensor_width, float sensor_height)
     camera_->Filmback.SensorHeight = sensor_height;
 
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 
     return camera_->Filmback.SensorAspectRatio;
 }
@@ -1030,6 +1046,7 @@ void APIPCamera::setFocalLength(float focal_length)
 {
     camera_->CurrentFocalLength = focal_length;
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 }
 
 void APIPCamera::enableManualFocus(bool enable)
@@ -1041,6 +1058,7 @@ void APIPCamera::enableManualFocus(bool enable)
         camera_->FocusSettings.FocusMethod = ECameraFocusMethod::Disable;
     }
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 }
 
 float APIPCamera::getFocusDistance() const
@@ -1052,6 +1070,7 @@ void APIPCamera::setFocusDistance(float focus_distance)
 {
     camera_->FocusSettings.ManualFocusDistance = focus_distance;
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 }
 
 float APIPCamera::getFocusAperture() const
@@ -1063,6 +1082,7 @@ void APIPCamera::setFocusAperture(float focus_aperture)
 {
     camera_->CurrentAperture = focus_aperture;
     copyCameraSettingsToAllSceneCapture(camera_);
+    updateCesiumCameraManager();
 }
 
 void APIPCamera::enableFocusPlane(bool enable)
@@ -1106,6 +1126,58 @@ void APIPCamera::copyCameraSettingsToSceneCapture(UCameraComponent* src, USceneC
         // But restore the original blendables
         dst_pp_settings.WeightedBlendables = dst_weighted_blendables;
     }
+}
+
+bool APIPCamera::updateCesiumCameraManager()
+{
+    const unsigned int scene_index = Utils::toNumeric(ImageType::Scene);
+    if (captures_.Num() <= static_cast<int32>(scene_index) || render_targets_.Num() <= static_cast<int32>(scene_index)) {
+        return false;
+    }
+
+    USceneCaptureComponent2D* capture = captures_[scene_index];
+    UTextureRenderTarget2D* render_target = capture ? capture->TextureTarget : nullptr;
+    if (!render_target) {
+        render_target = render_targets_[scene_index];
+    }
+
+    if (!capture || !render_target || capture->ProjectionType != ECameraProjectionMode::Perspective ||
+        render_target->SizeX < 1 || render_target->SizeY < 1) {
+        return false;
+    }
+
+    ACesiumCameraManager* camera_manager = Cast<ACesiumCameraManager>(cesium_camera_manager_.Get());
+    if (!IsValid(camera_manager)) {
+        camera_manager = ACesiumCameraManager::GetDefaultCameraManager(this);
+        cesium_camera_manager_ = camera_manager;
+        cesium_camera_id_ = INDEX_NONE;
+    }
+    if (!camera_manager) {
+        return false;
+    }
+
+    const FCesiumCamera cesium_camera(
+        FVector2D(render_target->SizeX, render_target->SizeY),
+        capture->GetComponentLocation(),
+        capture->GetComponentRotation(),
+        capture->FOVAngle);
+
+    if (cesium_camera_id_ == INDEX_NONE || !camera_manager->UpdateCamera(cesium_camera_id_, cesium_camera)) {
+        cesium_camera_id_ = camera_manager->AddCamera(cesium_camera);
+    }
+
+    return true;
+}
+
+void APIPCamera::removeCesiumCameraManagerCamera()
+{
+    ACesiumCameraManager* camera_manager = Cast<ACesiumCameraManager>(cesium_camera_manager_.Get());
+    if (camera_manager && cesium_camera_id_ != INDEX_NONE) {
+        camera_manager->RemoveCamera(cesium_camera_id_);
+    }
+
+    cesium_camera_id_ = INDEX_NONE;
+    cesium_camera_manager_ = nullptr;
 }
 
 //end CinemAirSim methods

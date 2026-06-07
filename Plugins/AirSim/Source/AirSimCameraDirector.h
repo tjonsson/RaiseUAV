@@ -19,7 +19,8 @@ enum class ECameraDirectorMode : uint8
     CAMERA_DIRECTOR_MODE_SPRINGARM_CHASE = 4 UMETA(DisplayName = "SpringArmChase"),
     CAMERA_DIRECTOR_MODE_BACKUP = 5 UMETA(DisplayName = "Backup"),
     CAMERA_DIRECTOR_MODE_NODISPLAY = 6 UMETA(DisplayName = "No Display"),
-    CAMERA_DIRECTOR_MODE_FRONT = 7 UMETA(DisplayName = "Front")
+    CAMERA_DIRECTOR_MODE_FRONT = 7 UMETA(DisplayName = "Front"),
+    CAMERA_DIRECTOR_MODE_DOWN = 8 UMETA(DisplayName = "CameraList")
 };
 
 UCLASS()
@@ -44,6 +45,7 @@ public:
     void inputEventBackupView();
     void inputEventNoDisplayView();
     void inputEventFrontView();
+    void inputEventCycleView();
 
 public:
     AAirSimCameraDirector();
@@ -57,7 +59,7 @@ public:
     void setMode(ECameraDirectorMode mode);
 
     void initializeForBeginPlay(ECameraDirectorMode view_mode,
-                                AActor *follow_actor, APIPCamera *fpv_camera, APIPCamera *front_camera, APIPCamera *back_camera);
+                                AActor *follow_actor, APIPCamera *fpv_camera, APIPCamera *front_camera, APIPCamera *back_camera, const TArray<APIPCamera*>& cycle_cameras);
 
     APIPCamera *getFpvCamera() const;
     APIPCamera *getExternalCamera() const;
@@ -69,8 +71,9 @@ public:
 private:
     void setupInputBindings();
     void attachSpringArm(bool attach);
-    void disableCameras(bool fpv, bool backup, bool front);
+    void disableAllManagedCameras(APIPCamera* keep);
     void notifyViewModeChanged();
+    void setCycleCameras(const TArray<APIPCamera*>& cameras);
 
 private:
     typedef common_utils::Utils Utils;
@@ -92,4 +95,7 @@ private:
     bool ext_obs_fixed_z_;
     int follow_distance_;
     bool camera_rotation_lag_enabled_;
+
+    TArray<APIPCamera*> cycle_cameras_;
+    int cycle_camera_index_ = -1;
 };

@@ -136,6 +136,8 @@ private: //members
     msr::airlib::AirSimSettings::CameraSetting sensor_params_;
 
     TArray<AActor*> ignore_actors_;
+    TWeakObjectPtr<AActor> cesium_camera_manager_;
+    int32 cesium_camera_id_;
 private: //methods
     typedef common_utils::Utils Utils;
     typedef AirSimSettings::CaptureSetting CaptureSetting;
@@ -154,5 +156,7 @@ private: //methods
     static void updateCameraSetting(UCineCameraComponent* camera, const CaptureSetting& setting, const NedTransform& ned_transform);
     void copyCameraSettingsToAllSceneCapture(UCameraComponent* camera);
     void copyCameraSettingsToSceneCapture(UCameraComponent* src, USceneCaptureComponent2D* dst);
+    bool updateCesiumCameraManager();
+    void removeCesiumCameraManagerCamera();
     //end CinemAirSim
 };

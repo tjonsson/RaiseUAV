@@ -765,6 +765,8 @@ namespace airlib
                 initial_view_mode = 6; // ECameraDirectorMode::CAMREA_DIRECTOR_MODE_NODISPLAY;
             else if (view_mode_string == "Front")
                 initial_view_mode = 7; // ECameraDirectorMode::CAMREA_DIRECTOR_MODE_FRONT;
+            else if (view_mode_string == "Down" || view_mode_string == "CameraList")
+                initial_view_mode = 8; // ECameraDirectorMode::CAMERA_DIRECTOR_MODE_DOWN;
             else
                 error_messages.push_back("ViewMode setting is not recognized: " + view_mode_string);
         }
@@ -854,7 +856,11 @@ namespace airlib
                 for (size_t child_index = 0; child_index < json_parent.size(); ++child_index) {
                     Settings json_settings_child;
                     if (json_parent.getChild(child_index, json_settings_child)) {
-                        CaptureSetting capture_setting;
+                        int image_type = json_settings_child.getInt("ImageType", 0);
+                        auto existing_capture_setting = capture_settings.find(image_type);
+                        CaptureSetting capture_setting = existing_capture_setting == capture_settings.end()
+                                                             ? CaptureSetting()
+                                                             : existing_capture_setting->second;
                         createCaptureSettings(json_settings_child, capture_setting);
                         capture_settings[capture_setting.image_type] = capture_setting;
                     }
@@ -1350,10 +1356,15 @@ namespace airlib
             capture_setting.width = settings_json.getInt("Width", capture_setting.width);
             capture_setting.height = settings_json.getInt("Height", capture_setting.height);
             capture_setting.fov_degrees = settings_json.getFloat("FOV_Degrees", capture_setting.fov_degrees);
+            capture_setting.auto_exposure_method = settings_json.getInt("AutoExposureMethod", capture_setting.auto_exposure_method);
             capture_setting.auto_exposure_speed = settings_json.getFloat("AutoExposureSpeed", capture_setting.auto_exposure_speed);
             capture_setting.auto_exposure_bias = settings_json.getFloat("AutoExposureBias", capture_setting.auto_exposure_bias);
             capture_setting.auto_exposure_max_brightness = settings_json.getFloat("AutoExposureMaxBrightness", capture_setting.auto_exposure_max_brightness);
             capture_setting.auto_exposure_min_brightness = settings_json.getFloat("AutoExposureMinBrightness", capture_setting.auto_exposure_min_brightness);
+            capture_setting.auto_exposure_low_percent = settings_json.getFloat("AutoExposureLowPercent", capture_setting.auto_exposure_low_percent);
+            capture_setting.auto_exposure_high_percent = settings_json.getFloat("AutoExposureHighPercent", capture_setting.auto_exposure_high_percent);
+            capture_setting.auto_exposure_histogram_log_min = settings_json.getFloat("AutoExposureHistogramLogMin", capture_setting.auto_exposure_histogram_log_min);
+            capture_setting.auto_exposure_histogram_log_max = settings_json.getFloat("AutoExposureHistogramLogMax", capture_setting.auto_exposure_histogram_log_max);
             capture_setting.motion_blur_amount = settings_json.getFloat("MotionBlurAmount", capture_setting.motion_blur_amount);
             capture_setting.motion_blur_max = settings_json.getFloat("MotionBlurMax", capture_setting.motion_blur_max);
             capture_setting.image_type = settings_json.getInt("ImageType", 0);
