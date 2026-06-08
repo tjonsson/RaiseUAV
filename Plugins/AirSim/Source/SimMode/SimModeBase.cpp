@@ -2013,10 +2013,19 @@ void ASimModeBase::setupVehiclesAndCamera()
         //TODO: better handle no FPV vehicles scenario
         getVehicleSimApi()->possess();
         TArray<APIPCamera*> cycle_cameras;
+        TSet<APIPCamera*> non_rgb_subwindow_cameras;
+        for (const auto& subwindow_setting : AirSimSettings::singleton().subwindow_settings) {
+            if (subwindow_setting.image_type != msr::airlib::ImageCaptureBase::ImageType::Scene) {
+                APIPCamera* camera = getCamera(msr::airlib::CameraDetails(subwindow_setting.camera_name, subwindow_setting.vehicle_name));
+                if (camera)
+                    non_rgb_subwindow_cameras.Add(camera);
+            }
+        }
+
         if (const auto* vehicle_setting = getVehicleSimApi()->getVehicleSetting()) {
             for (const auto& pair : vehicle_setting->cameras) {
                 APIPCamera* camera = getVehicleSimApi()->getCamera(pair.first);
-                if (camera)
+                if (camera && !non_rgb_subwindow_cameras.Contains(camera))
                     cycle_cameras.Add(camera);
             }
         }

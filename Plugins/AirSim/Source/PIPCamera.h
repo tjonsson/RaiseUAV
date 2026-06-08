@@ -138,6 +138,7 @@ private: //members
     TArray<AActor*> ignore_actors_;
     TWeakObjectPtr<AActor> cesium_camera_manager_;
     int32 cesium_camera_id_;
+    float last_infrared_stencil_refresh_time_ = -1.0f;
 private: //methods
     typedef common_utils::Utils Utils;
     typedef AirSimSettings::CaptureSetting CaptureSetting;
@@ -151,6 +152,7 @@ private: //methods
                                               bool force_linear_gamma);
     void setNoiseMaterial(int image_type, UObject* outer, FPostProcessSettings& obj, const NoiseSetting& settings);
     void setDistortionMaterial(int image_type, UObject* outer, FPostProcessSettings& obj);
+    void refreshInfraredCustomStencils();
     static void updateCameraPostProcessingSetting(FPostProcessSettings& obj, const CaptureSetting& setting);
     //CinemAirSim
     static void updateCameraSetting(UCineCameraComponent* camera, const CaptureSetting& setting, const NedTransform& ned_transform);

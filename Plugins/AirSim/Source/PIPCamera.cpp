@@ -1,6 +1,8 @@
 #include "PIPCamera.h"
 #include "UObject/ConstructorHelpers.h"
+#include "UObject/UObjectIterator.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/PrimitiveComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
@@ -12,6 +14,22 @@
 #include "AirBlueprintLib.h"
 #include "CesiumCamera.h"
 #include "CesiumCameraManager.h"
+
+namespace
+{
+    constexpr float kInfraredStencilRefreshIntervalSeconds = 1.0f;
+    constexpr int32 kInfraredFallbackStencilMin = 32;
+    constexpr int32 kInfraredFallbackStencilRange = 224;
+
+    int32 getInfraredFallbackStencilValue(const UPrimitiveComponent* component)
+    {
+        FString key = component ? component->GetPathName() : FString();
+        if (key.IsEmpty() && component && component->GetOwner())
+            key = component->GetOwner()->GetName();
+
+        return kInfraredFallbackStencilMin + (GetTypeHash(key) % kInfraredFallbackStencilRange);
+    }
+}
 
 //CinemAirSim
 APIPCamera::APIPCamera(const FObjectInitializer& ObjectInitializer)
@@ -267,6 +285,14 @@ void APIPCamera::Tick(float DeltaTime)
     if (sensor_params_.draw_sensor) {
         UAirBlueprintLib::DrawPoint(this->GetWorld(), this->GetActorTransform().GetLocation(), 5, FColor::Black, false, 0.3);
         UAirBlueprintLib::DrawCoordinateSystem(this->GetWorld(), this->GetActorLocation(), this->GetActorRotation(), 25, false, 0.3, 10);
+    }
+    const unsigned int infrared_index = Utils::toNumeric(ImageType::Infrared);
+    if (camera_type_enabled_.size() > infrared_index && camera_type_enabled_[infrared_index]) {
+        UWorld* world = GetWorld();
+        if (world && (last_infrared_stencil_refresh_time_ < 0.0f ||
+            world->GetTimeSeconds() - last_infrared_stencil_refresh_time_ >= kInfraredStencilRefreshIntervalSeconds)) {
+            refreshInfraredCustomStencils();
+        }
     }
     updateCesiumCameraManager();
 }
@@ -822,12 +848,35 @@ void APIPCamera::setNoiseMaterial(int image_type, UObject* outer, FPostProcessSe
 	}
 }
 
+void APIPCamera::refreshInfraredCustomStencils()
+{
+    UWorld* world = GetWorld();
+    if (!world)
+        return;
+
+    for (TObjectIterator<UPrimitiveComponent> component_iter; component_iter; ++component_iter) {
+        UPrimitiveComponent* component = *component_iter;
+        if (!IsValid(component) || component->IsTemplate() || component->GetWorld() != world)
+            continue;
+
+        if (component->CustomDepthStencilValue == 0)
+            component->SetCustomDepthStencilValue(getInfraredFallbackStencilValue(component));
+
+        component->SetRenderCustomDepth(true);
+    }
+
+    last_infrared_stencil_refresh_time_ = world->GetTimeSeconds();
+}
+
 void APIPCamera::enableCaptureComponent(const APIPCamera::ImageType type, bool is_enabled, std::string annotation_name)
 {
     USceneCaptureComponent2D* capture = getCaptureComponent(type, false, annotation_name);
     if (capture != nullptr) {
         UDetectionComponent* detection = getDetectionComponent(type, false, annotation_name);
         if (is_enabled) {
+            if (type == ImageType::Infrared)
+                refreshInfraredCustomStencils();
+
             //do not make unnecessary calls to Activate() which otherwise causes crash in Unreal
             if (!capture->IsActive() || capture->TextureTarget == nullptr) {
                 capture->TextureTarget = getRenderTarget(type, false, annotation_name);
