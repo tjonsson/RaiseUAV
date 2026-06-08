@@ -46,12 +46,9 @@ void USimHUDWidget::updateHelpText()
 void USimHUDWidget::hideCenterMessage()
 {
     if (WidgetTree) {
-        if (UWidget* center_message = WidgetTree->FindWidget(TEXT("CenterMessage"))) {
-            center_message->SetVisibility(ESlateVisibility::Collapsed);
-
-            if (UTextBlock* text_block = Cast<UTextBlock>(center_message)) {
-                text_block->SetText(FText::GetEmpty());
-            }
+        if (UTextBlock* text_block = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("CenterMessage")))) {
+            text_block->SetVisibility(ESlateVisibility::Collapsed);
+            text_block->SetText(FText::GetEmpty());
         }
     }
 }
