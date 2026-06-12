@@ -4,6 +4,14 @@ This Unreal Engine project serves as the **Digital Twin visualization layer** fo
 
 ---
 
+## Engine Version
+
+**Unreal Engine 5.7** is required. Download and install it from the [Epic Games Launcher](https://www.unrealengine.com/en-US/download).
+
+To produce a packaged Shipping build, run `build.bat` from the project root. Pass `clean` as the first argument to force a full rebuild.
+
+---
+
 ## Required Plugins
 
 | Plugin | Purpose | Installation Status | 

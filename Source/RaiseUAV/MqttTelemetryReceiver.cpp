@@ -16,7 +16,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     FDroneTelemetry Telemetry;
 
     // --- Drone info ---
-    if (JsonObject->HasField("drone"))
+    if (JsonObject->HasField(TEXT("drone")))
     {
         TSharedPtr<FJsonObject> DroneObj = JsonObject->GetObjectField(TEXT("drone"));
         Telemetry.DroneId = DroneObj->GetIntegerField(TEXT("id"));
@@ -24,7 +24,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Status ---
-    if (JsonObject->HasField("status"))
+    if (JsonObject->HasField(TEXT("status")))
     {
         TSharedPtr<FJsonObject> StatusObj = JsonObject->GetObjectField(TEXT("status"));
         Telemetry.ErrorStatus = StatusObj->GetIntegerField(TEXT("error"));
@@ -34,7 +34,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Position ---
-    if (JsonObject->HasField("position"))
+    if (JsonObject->HasField(TEXT("position")))
     {
         TSharedPtr<FJsonObject> PosObj = JsonObject->GetObjectField(TEXT("position"));
         Telemetry.GlobalPosition.X = PosObj->GetNumberField(TEXT("latitude"));
@@ -46,7 +46,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- External position ---
-    if (JsonObject->HasField("extPosition"))
+    if (JsonObject->HasField(TEXT("extPosition")))
     {
         TSharedPtr<FJsonObject> ExtObj = JsonObject->GetObjectField(TEXT("extPosition"));
         Telemetry.ExtPosition.X = ExtObj->GetNumberField(TEXT("latitude"));
@@ -56,7 +56,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- GPS ---
-    if (JsonObject->HasField("gpsDetail"))
+    if (JsonObject->HasField(TEXT("gpsDetail")))
     {
         TSharedPtr<FJsonObject> GPSObj = JsonObject->GetObjectField(TEXT("gpsDetail"));
         Telemetry.GPScounter = GPSObj->GetIntegerField(TEXT("GPScounter"));
@@ -72,7 +72,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Velocity ---
-    if (JsonObject->HasField("velocity"))
+    if (JsonObject->HasField(TEXT("velocity")))
     {
         TSharedPtr<FJsonObject> VelObj = JsonObject->GetObjectField(TEXT("velocity"));
         Telemetry.LinearVelocity.X = VelObj->GetNumberField(TEXT("x"));
@@ -81,7 +81,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Angular velocity ---
-    if (JsonObject->HasField("angularVelocity"))
+    if (JsonObject->HasField(TEXT("angularVelocity")))
     {
         TSharedPtr<FJsonObject> AngVelObj = JsonObject->GetObjectField(TEXT("angularVelocity"));
         Telemetry.AngularVelocity.X = AngVelObj->GetNumberField(TEXT("x"));
@@ -90,7 +90,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Orientation ---
-    if (JsonObject->HasField("quaternion"))
+    if (JsonObject->HasField(TEXT("quaternion")))
     {
         TSharedPtr<FJsonObject> QuatObj = JsonObject->GetObjectField(TEXT("quaternion"));
         Telemetry.Orientation.W = QuatObj->GetNumberField(TEXT("q0"));
@@ -100,7 +100,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- RC ---
-    if (JsonObject->HasField("rc"))
+    if (JsonObject->HasField(TEXT("rc")))
     {
         TSharedPtr<FJsonObject> RCObj = JsonObject->GetObjectField(TEXT("rc"));
         Telemetry.Gear = RCObj->GetIntegerField(TEXT("gear"));
@@ -112,7 +112,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Battery ---
-    if (JsonObject->HasField("battery"))
+    if (JsonObject->HasField(TEXT("battery")))
     {
         TSharedPtr<FJsonObject> BatObj = JsonObject->GetObjectField(TEXT("battery"));
         Telemetry.BatteryCapacity = BatObj->GetNumberField(TEXT("capacity"));
@@ -122,7 +122,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Avoidance ---
-    if (JsonObject->HasField("avoidance"))
+    if (JsonObject->HasField(TEXT("avoidance")))
     {
         TSharedPtr<FJsonObject> AvoidObj = JsonObject->GetObjectField(TEXT("avoidance"));
         Telemetry.AvoidUp = AvoidObj->GetNumberField(TEXT("up"));
@@ -134,7 +134,7 @@ void AMqttTelemetryReceiver::HandleMessage(const FString& Message)
     }
 
     // --- Timestamp ---
-    if (JsonObject->HasField("timestamp"))
+    if (JsonObject->HasField(TEXT("timestamp")))
     {
         FString TSString = JsonObject->GetStringField(TEXT("timestamp"));
         Telemetry.Timestamp = FCString::Atod(*TSString);

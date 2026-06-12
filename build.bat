@@ -3,11 +3,14 @@ setlocal
 
 set "PROJECT_DIR=%~dp0"
 set "PROJECT_FILE=%PROJECT_DIR%RaiseUAV.uproject"
-set "UE_ROOT=C:\Program Files\Epic Games\UE_5.4"
+set "UE_ROOT=C:\Program Files\Epic Games\UE_5.7"
 set "RUN_UAT=%UE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat"
 set "ARCHIVE_DIR=%PROJECT_DIR%Build\Production"
 set "OUTPUT_DIR=%ARCHIVE_DIR%\Windows"
-set "ENGINE_CESIUM_DESCRIPTOR=%UE_ROOT%\Engine\Plugins\Marketplace\CesiumForUnreal_5.4\CesiumForUnreal.uplugin"
+set "ENGINE_CESIUM_DESCRIPTOR="
+for /d %%d in ("%UE_ROOT%\Engine\Plugins\Marketplace\Cesium*") do (
+    if exist "%%d\CesiumForUnreal.uplugin" set "ENGINE_CESIUM_DESCRIPTOR=%%d\CesiumForUnreal.uplugin"
+)
 set "CLEAN_ARG="
 
 if /i "%~1"=="clean" set "CLEAN_ARG=-clean"
@@ -28,19 +31,19 @@ if not exist "%RUN_UAT%" (
     exit /b 1
 )
 
-if not exist "%ENGINE_CESIUM_DESCRIPTOR%" (
+if "%ENGINE_CESIUM_DESCRIPTOR%"=="" (
     echo ERROR: Required Unreal Engine Marketplace plugin is missing:
     echo   Cesium for Unreal
     echo.
-    echo Expected location:
-    echo   %ENGINE_CESIUM_DESCRIPTOR%
+    echo Searched under:
+    echo   %UE_ROOT%\Engine\Plugins\Marketplace\
     echo.
     echo Install it from the Epic Games Launcher:
     echo   1. Open Epic Games Launcher.
     echo   2. Go to Unreal Engine ^> Library.
     echo   3. Under Vault, find or search for "Cesium for Unreal".
     echo   4. Click Install to Engine.
-    echo   5. Choose Unreal Engine 5.4.
+    echo   5. Choose Unreal Engine 5.7.
     echo   6. Run this build script again.
     echo.
     echo If the plugin is already installed elsewhere, update ENGINE_CESIUM_DESCRIPTOR

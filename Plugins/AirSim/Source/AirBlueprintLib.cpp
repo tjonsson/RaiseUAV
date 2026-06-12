@@ -58,7 +58,7 @@ EAppReturnType::Type UAirBlueprintLib::ShowMessage(EAppMsgType::Type message_typ
 
 ULineBatchComponent* GetLineBatcher(const UWorld* InWorld, bool bPersistentLines, float LifeTime, bool bDepthIsForeground)
 {
-	return (InWorld ? (bDepthIsForeground ? InWorld->ForegroundLineBatcher : ((bPersistentLines || (LifeTime > 0.f)) ? InWorld->PersistentLineBatcher : InWorld->LineBatcher)) : NULL);
+	return (InWorld ? (bDepthIsForeground ? InWorld->GetLineBatcher(UWorld::ELineBatcherType::Foreground) : ((bPersistentLines || (LifeTime > 0.f)) ? InWorld->GetLineBatcher(UWorld::ELineBatcherType::WorldPersistent) : InWorld->GetLineBatcher(UWorld::ELineBatcherType::World))) : NULL);
 }
 
 static float GetLineLifeTime(ULineBatchComponent* LineBatcher, float LifeTime, bool bPersistent)
