@@ -1781,6 +1781,18 @@ APawn* ASimModeBase::createVehiclePawn(const AirSimSettings::VehicleSetting& veh
 
     FRotator spawn_rotation = toFRotator(vehicle_setting.rotation, uu_origin.Rotator());
 
+    // Snap to 5 m above terrain. Cesium tiles are guaranteed loaded by the vehicle spawn delay.
+    {
+        FHitResult hit;
+        FCollisionQueryParams trace_params;
+        trace_params.bTraceComplex = true;
+        const FVector trace_start(spawn_position.X, spawn_position.Y, 1000000.0f);
+        const FVector trace_end(spawn_position.X, spawn_position.Y, -1000000.0f);
+        if (GetWorld()->LineTraceSingleByChannel(hit, trace_start, trace_end, ECC_WorldStatic, trace_params)) {
+            spawn_position.Z = hit.ImpactPoint.Z + 500.0f; // 500 cm = 5 m
+        }
+    }
+
     std::string vehicle_name = vehicle_setting.vehicle_name;
 
     //spawn vehicle pawn
