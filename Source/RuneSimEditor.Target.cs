@@ -3,14 +3,14 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class RaiseUAVTarget : TargetRules
+public class RuneSimEditorTarget : TargetRules
 {
-	public RaiseUAVTarget(TargetInfo Target) : base(Target)
+	public RuneSimEditorTarget(TargetInfo Target) : base(Target)
 	{
-		Type = TargetType.Game;
+		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
 
-		ExtraModuleNames.AddRange( new string[] { "RaiseUAV" } );
+		ExtraModuleNames.AddRange( new string[] { "RuneSim" } );
 	}
 }

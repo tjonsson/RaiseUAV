@@ -2,7 +2,7 @@
 setlocal
 
 set "PROJECT_DIR=%~dp0"
-set "PROJECT_FILE=%PROJECT_DIR%RaiseUAV.uproject"
+set "PROJECT_FILE=%PROJECT_DIR%RuneSim.uproject"
 set "UE_ROOT=C:\Program Files\Epic Games\UE_5.7"
 set "RUN_UAT=%UE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat"
 set "ARCHIVE_DIR=%PROJECT_DIR%Build\Production"
@@ -51,7 +51,7 @@ if "%ENGINE_CESIUM_DESCRIPTOR%"=="" (
     exit /b 1
 )
 
-echo Building RaiseUAV production package...
+echo Building RUNE Sim production package...
 echo Project:
 echo   %PROJECT_FILE%
 echo Archive directory:
@@ -64,7 +64,7 @@ echo.
 call "%RUN_UAT%" BuildCookRun ^
     -project="%PROJECT_FILE%" ^
     -noP4 ^
-    -target=RaiseUAV ^
+    -target=RuneSim ^
     -platform=Win64 ^
     -clientconfig=Shipping ^
     %CLEAN_ARG% ^

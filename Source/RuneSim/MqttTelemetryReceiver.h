@@ -74,7 +74,7 @@ struct FDroneTelemetry
 };
 
 UCLASS()
-class RAISEUAV_API AMqttTelemetryReceiver : public ABaseWebSocketReceiver
+class RUNESIM_API AMqttTelemetryReceiver : public ABaseWebSocketReceiver
 {
     GENERATED_BODY()
 

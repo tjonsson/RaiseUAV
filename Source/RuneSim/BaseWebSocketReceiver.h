@@ -6,7 +6,7 @@
 #include "BaseWebSocketReceiver.generated.h"
 
 UCLASS(Abstract)
-class RAISEUAV_API ABaseWebSocketReceiver : public AActor
+class RUNESIM_API ABaseWebSocketReceiver : public AActor
 {
     GENERATED_BODY()
 
@@ -17,7 +17,7 @@ protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-    // Called when a message arrives — subclasses will override this
+    // Called when a message arrives ï¿½ subclasses will override this
     virtual void HandleMessage(const FString& Message) PURE_VIRTUAL(ABaseWebSocketReceiver::HandleMessage, );
 
     // Can be overridden for a different WebSocket URL or port

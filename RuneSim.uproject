@@ -2,10 +2,10 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
-	"Description": "",
+	"Description": "RUNE Sim - Realistic UAV Navigation Environment",
 	"Modules": [
 		{
-			"Name": "RaiseUAV",
+			"Name": "RuneSim",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [

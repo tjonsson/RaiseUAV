@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class RaiseUAV : ModuleRules
+public class RuneSim : ModuleRules
 {
-	public RaiseUAV(ReadOnlyTargetRules Target) : base(Target)
+	public RuneSim(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	

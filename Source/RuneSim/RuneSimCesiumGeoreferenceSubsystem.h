@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
-#include "RaiseUAVCesiumGeoreferenceSubsystem.generated.h"
+#include "RuneSimCesiumGeoreferenceSubsystem.generated.h"
 
 UCLASS()
-class RAISEUAV_API URaiseUAVCesiumGeoreferenceSubsystem : public UWorldSubsystem
+class RUNESIM_API URuneSimCesiumGeoreferenceSubsystem : public UWorldSubsystem
 {
     GENERATED_BODY()
 

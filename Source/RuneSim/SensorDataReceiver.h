@@ -5,7 +5,7 @@
 #include "SensorDataReceiver.generated.h"
 
 UCLASS()
-class RAISEUAV_API ASensorDataReceiver : public ABaseWebSocketReceiver
+class RUNESIM_API ASensorDataReceiver : public ABaseWebSocketReceiver
 {
     GENERATED_BODY()
 

@@ -1,6 +1,6 @@
-# Unreal Engine Digital Twin Environment  
+# RUNE Sim — Realistic UAV Navigation Environment
 
-This Unreal Engine project serves as the **Digital Twin visualization layer** for both simulated (SITL) and real (HITL) drone operations. It connects to the **Control Room** implemented in this [repository](https://github.com/manudelu/ws_uspace_control_room.git), receives live MQTT telemetry via WebSocket, and renders fleet activity over Cesium 3D geospatial terrain using AirSim physics. And also uses Gaussian Splatting to enhance the rendering capabilities of the operational area in which the drone is moving.
+**RUNE Sim** is a real-time Digital Twin visualization environment for both simulated (SITL) and real (HITL) drone operations, built on Unreal Engine 5.7. It connects to the **Control Room** implemented in this [repository](https://github.com/manudelu/ws_uspace_control_room.git), receives live MQTT telemetry via WebSocket, and renders fleet activity over Cesium 3D geospatial terrain using AirSim physics. And also uses Gaussian Splatting to enhance the rendering capabilities of the operational area in which the drone is moving.
 
 ---
 
